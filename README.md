@@ -4,7 +4,9 @@
 
 ## Version 1.0.0 
 
-* Requires: [ExpressionEngine 2](http://expressionengine.com/)
+Requires:
+
+* [ExpressionEngine 2](http://expressionengine.com/)
 * [P&Ts Assets](http://pixelandtonic.com/assets)
 
 ## Description
@@ -19,7 +21,7 @@ A simple plugin that allows you to retrieve Pixel&Tonic's Assets attached to mor
 
 Accepts all of Asset's documented parameters, plus:
 
-### entry_ids
+### entry_ids="..."
 
 A pipe- or string-delimited list of entry IDs.
 
@@ -30,12 +32,12 @@ This is required for the plugin to parse in the correct order.
 ## Example - Basic
 
 	{exp:many_assets entry_ids="420,1976,2011" parse="inward"}
-	...
+		...
 	{/exp:many_assets}
 
-## Example - Combined with CE Img
+## Example - Combined with Playa and CE Img
 
-	{exp:many_assets entry_ids="420,1976,2011" parse="inward" prefix="asset" limit="5" orderby="random"}
+	{exp:many_assets entry_ids="{exp:playa:parent_ids entry_id='420' delimiter=','}" parse="inward" prefix="asset" limit="5" orderby="random"}
 
 		{exp:ce_img:pair src="{asset:server_path}" width="450" height="320" crop="yes" allow_scale_larger="yes"}
 			<figure>
