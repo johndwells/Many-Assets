@@ -19,8 +19,6 @@ A simple plugin that allows you to retrieve Pixel&Tonic's Assets attached to mor
 
 ## Required Parameters
 
-Accepts all of Asset's documented parameters, plus:
-
 ### entry_ids="..."
 
 A pipe- or string-delimited list of entry IDs.
@@ -29,9 +27,27 @@ A pipe- or string-delimited list of entry IDs.
 
 This is required for the plugin to parse in the correct order.
 
+## Optional Parameters
+
+Accepts all of Asset's documented parameters, plus:
+
+### field_names="…"
+
+A pipe- or string-delimited list of field names that the lookup should be limited to.
+
+__beta__: To limit to specific matrix columns, format should be "field_name:column_name"
+
+
 ## Example - Basic
 
 	{exp:many_assets entry_ids="420,1976,2011" parse="inward"}
+		...
+	{/exp:many_assets}
+
+
+## Example - Limit to field name & matrix col
+
+	{exp:many_assets entry_ids="420,1976,2011" field_names="cf_page_slideshow,cf_page_matrix:file" parse="inward"}
 		...
 	{/exp:many_assets}
 
