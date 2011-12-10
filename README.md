@@ -11,7 +11,7 @@ Requires:
 
 ## Description
 
-A simple plugin that allows you to retrieve Pixel&Tonic's Assets attached to more than one entry. Simply pass a pipe- or comma-delimited list of entry ids, add parse="inward", and be on your way. 
+A simple plugin that allows you to retrieve [Pixel&Tonic's Assets](http://pixelandtonic.com/assets) attached to more than one entry. Simply pass a pipe- or comma-delimited list of entry ids, add parse="inward", and be on your way. 
 
 ## Installation
 
@@ -35,7 +35,7 @@ Accepts all of Asset's documented parameters, plus:
 
 A pipe- or string-delimited list of field names that the lookup should be limited to.
 
-__beta__: To limit to specific matrix columns, format should be "field_name:column_name"
+*beta*: To limit to specific matrix columns, format should be "field_name:column_name"
 
 
 ## Example - Basic
@@ -63,3 +63,11 @@ __beta__: To limit to specific matrix columns, format should be "field_name:colu
 		{/exp:ce_img:pair}
 		
 	{/exp:many_assets}
+
+
+## TODO
+
+* Cache queries to be considerate?
+* Verify Matrix is installed before making query
+* Debugging mode
+* Improve robustness against potential errors

@@ -59,7 +59,7 @@ class Many_assets {
     	$offset			= $this->EE->TMPL->fetch_param('offset', 0);
 
     	/*
-    	 * standardise list of entry ids
+    	 * standardise delimiter format
     	 */
 		$entry_ids = trim($entry_ids, ',|');
     	if(strpos($entry_ids, '|') !== FALSE)
@@ -74,7 +74,7 @@ class Many_assets {
 		$col_ids = array();
 		if($field_names)
 		{
-			// standardise
+			// standardise delimiter format
 			$field_names = trim($field_names, ',|');
 	    	if(strpos($field_names, '|') !== FALSE)
 	    	{
@@ -86,12 +86,8 @@ class Many_assets {
     		{
     			if(strpos($field_names, ':') !== FALSE)
     			{
-    				/* UNFINISHED.
-    				 * NEED TO:
-    				 * 	1. Check if in fact Matrix is installed
-    				 *	2. Query to find the field_id & col_id, based on the field_name:col_name passed to us
-    				 *	3. add field_id to $field_ids array
-    				 *	4. add col_id to $col_ids array
+    				/*
+    				 * TODO: Verify that Matrix is installed & available
     				 */
     				 list($field_name, $col_name) = explode(':', $field_names);
     				 $sql = 'SELECT mc.col_id, mc.field_id
@@ -162,6 +158,8 @@ class Many_assets {
 			{
 				$sql .= ' OFFSET ' . intval($limit);
 			}
+			
+			// TODO: cache query?
 			
 			// loop through our returned result
 			if($rows = $this->EE->db->query($sql)->result_array())
