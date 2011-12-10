@@ -26,7 +26,7 @@
 
 $plugin_info = array(
 	'pi_name'		=> 'Many Assets',
-	'pi_version'	=> '1.1',
+	'pi_version'	=> '1.1.0',
 	'pi_author'		=> 'John D Wells',
 	'pi_author_url'	=> 'http://johndwells.com',
 	'pi_description'=> 'Retrieve Assets from across multiple Entries',
