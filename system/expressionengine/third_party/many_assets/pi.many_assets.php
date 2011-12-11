@@ -12,7 +12,7 @@
 
 $plugin_info = array(
 	'pi_name'		=> 'Many Assets',
-	'pi_version'	=> '1.1.1',
+	'pi_version'	=> '1.2.0',
 	'pi_author'		=> 'John D Wells',
 	'pi_author_url'	=> 'http://johndwells.com',
 	'pi_description'=> 'Retrieve P&T Assets from across many Entries, and/or across many custom fields.',
@@ -61,7 +61,7 @@ class Many_assets {
 		 * ----------------------------------------------------
 		 * ----------------------------------------------------
     	 */
-    	$field_names	= $this->EE->TMPL->fetch_param('field_names', FALSE);
+    	$include		= $this->EE->TMPL->fetch_param('include', FALSE);
     	$orderby		= $this->EE->TMPL->fetch_param('orderby', FALSE);
     	$sort			= $this->EE->TMPL->fetch_param('sort', '');
     	$limit			= $this->EE->TMPL->fetch_param('limit', 0);
@@ -81,10 +81,10 @@ class Many_assets {
     		$entry_ids = str_replace('|', ',', $entry_ids);
     	}
 
-		$field_names = trim($field_names, ',|');
-    	if(strpos($field_names, '|') !== FALSE)
+		$include = trim($include, ',|');
+    	if(strpos($include, '|') !== FALSE)
     	{
-    		$field_names = str_replace('|', ',', $field_names);
+    		$include = str_replace('|', ',', $include);
     	}
 
 		$orderby = strtolower($orderby);
@@ -102,50 +102,61 @@ class Many_assets {
 
 
 		/*
-		 * Limit query to field(s)?
+		 * Limit query to include specific field(s)?
 		 * ----------------------------------------------------
 		 * ----------------------------------------------------
 		 */
-		$field_ids = array();
-		$col_ids = array();
-		if($field_names)
+		$sql_include = array();
+		if($include)
 		{
 
-    		// loop through each, because if a matrix col then we need extra steps
-    		foreach(explode(',', $field_names) as $name)
+    		foreach(explode(',', $include) as $names)
     		{
-    			if(strpos($field_names, ':') !== FALSE)
+    			switch(substr_count($names, ':'))
     			{
-    				// Only run query if our matrix table exists
-    				if($this->EE->db->table_exists('exp_matrix_cols'))
-    				{
-	    				list($field_name, $col_name) = explode(':', $field_names);
-	    				$sql = 'SELECT mc.col_id, mc.field_id
-	    							FROM exp_matrix_cols mc JOIN exp_channel_fields cf ON mc.field_id = cf.field_id
-	    							WHERE cf.field_name = "' . $field_name . '"
-	    							AND mc.col_name = "' . $col_name . '" LIMIT 1';
+    				case(2) :
+	    				// Only run query if our matrix table exists
+	    				if($this->EE->db->table_exists('exp_matrix_cols'))
+	    				{
+		    				list($channel_name, $field_name, $col_name) = explode(':', $names);
+		    				$sql = 'SELECT mc.col_id, mc.field_id
+		    							FROM exp_matrix_cols mc JOIN exp_channel_fields cf ON mc.field_id = cf.field_id
+		    							WHERE cf.field_name = "' . $field_name . '"
+		    							AND group_id IN(SELECT field_group FROM exp_channels WHERE channel_name = "'. $channel_name . '")
+		    							AND mc.col_name = "' . $col_name . '" LIMIT 1';
 				    		$query = $this->EE->db->query($sql);
 							if($query->num_rows())
 							{
-								$field_ids[] = $query->row()->field_id;
-								$col_ids[] = $query->row()->col_id;
+								$row = $query->row();
+								$key = 'f' . $row->field_id . 'c' . $row->col_id;
+								if( ! array_key_exists($key, $sql_include))
+								{
+									$sql_include[$key] = ' (ae.field_id = "' . $row->field_id . '" AND ae.col_id="' . $row->col_id . '") ';
+								}
 							}
-							
+
 							// waste not, want not
 							$query->free_result();
-    				}
-    			}
-    			else
-    			{
-		    		$sql = 'SELECT field_id FROM exp_channel_fields WHERE field_name = "' . $field_names . '" LIMIT 1';
-		    		$query = $this->EE->db->query($sql);
-					if($query->num_rows())
-					{
-						$field_ids[] = $query->row()->field_id;
-					}
-
-					// waste not, want not
-					$query->free_result();
+						}
+    				break;
+    				
+    				case(1) :
+	    				list($channel_name, $field_name) = explode(':', $names);
+			    		$sql = 'SELECT field_id FROM exp_channel_fields WHERE field_name = "' . $field_name . '" AND group_id IN(SELECT field_group FROM exp_channels WHERE channel_name = "'. $channel_name . '")';
+			    		$query = $this->EE->db->query($sql);
+						if($query->num_rows())
+						{
+							$row = $query->row();
+							$key = 'f' . $row->field_id;
+							if( ! array_key_exists($key, $sql_include))
+							{
+								$sql_include[$key] = ' ae.field_id = "' . $query->row()->field_id . '" ';
+							}
+						}
+	
+						// waste not, want not
+						$query->free_result();
+    				break;
     			}
     		}
 		}
@@ -161,19 +172,10 @@ class Many_assets {
 			FROM exp_assets a
 			JOIN exp_assets_entries ae ON a.asset_id = ae.asset_id
 			WHERE ae.entry_id IN(' . $entry_ids . ')';
+		
+		
+		$sql .= ' AND (' . implode(' OR ', $sql_include) . ')';
 
-		if($field_ids)
-		{
-			$field_ids = implode(',', $field_ids);
-			$sql .= ' AND ae.field_id IN(' . $field_ids . ')';
-		}
-		
-		if($col_ids)
-		{
-			$col_ids = implode(',', $col_ids);
-			$sql .= ' AND ae.col_id IN(' . $col_ids . ')';
-		}
-		
 		if($orderby)
 		{
 			$sql .= ' ORDER BY ' . $orderby . ' ' . $sort;
