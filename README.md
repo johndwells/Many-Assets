@@ -1,7 +1,7 @@
 # Many Assets
 
 * Author: [John D Wells](http://johndwells.com)
-* Version 1.1.1 (consider beta until I say otherwise)
+* Version 1.2.0 (consider beta until I say otherwise)
 
 Requires:
 
@@ -40,11 +40,13 @@ This is required for the plugin to parse in the correct order.
 
 Accepts all of Asset's documented parameters, plus:
 
-**`field_names="..."`**
+**`include="..."`**
 
-A pipe- or string-delimited list of field names that the lookup should be limited to.
+A pipe- or string-delimited list of fields that the lookup should be limited to.
 
-*beta*: To limit to specific matrix columns, format should be "field_name:column_name"
+**`exclude="..."`**
+
+A pipe- or string-delimited list of fields that the lookup should exclude.
 
 
 ## Usage Examples #

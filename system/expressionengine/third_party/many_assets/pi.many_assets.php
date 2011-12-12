@@ -22,188 +22,129 @@ $plugin_info = array(
 class Many_assets {
 
 	public $return_data;
+
+	/*
+	 * Holds any query results
+	 */
+    protected $_result = array();
     
-	/**
+    /*
+     * Cache key
+     */
+    protected $_ckey;
+
+
+
+	/*
 	 * Constructor
 	 */
 	public function __construct()
 	{
-
 		// Obviously
 		$this->EE =& get_instance();
 
 
-
 		/*
-		 * create and/or reference our cache
-		 * ----------------------------------------------------
+		 * Fetch/call/cache our query
 		 * ----------------------------------------------------
 		 */
-		if ( ! isset($this->EE->session->cache['many_assets']))
-        {
-            $this->EE->session->cache['many_assets'] = array();
-        }
-        $this->cache =& $this->EE->session->cache['many_assets'];
-    
-
-
-    	/*
-    	 * fetch required param(s) - return immediately if any are not provided
-		 * ----------------------------------------------------
-		 * ----------------------------------------------------
-    	 */
-		if (($entry_ids	= $this->EE->TMPL->fetch_param('entry_ids', FALSE)) == FALSE) return;
-
-
-
-    	/*
-    	 * fetch optional params
-		 * ----------------------------------------------------
-		 * ----------------------------------------------------
-    	 */
-    	$include		= $this->EE->TMPL->fetch_param('include', FALSE);
-    	$orderby		= $this->EE->TMPL->fetch_param('orderby', FALSE);
-    	$sort			= $this->EE->TMPL->fetch_param('sort', '');
-    	$limit			= $this->EE->TMPL->fetch_param('limit', 0);
-    	$offset			= $this->EE->TMPL->fetch_param('offset', 0);
-
-
-
-		/*
-		 * Format/standardise params
-		 * ----------------------------------------------------
-		 * ----------------------------------------------------
-		 */
-		
-		$entry_ids = trim($entry_ids, ',|');
-    	if(strpos($entry_ids, '|') !== FALSE)
-    	{
-    		$entry_ids = str_replace('|', ',', $entry_ids);
-    	}
-
-		$include = trim($include, ',|');
-    	if(strpos($include, '|') !== FALSE)
-    	{
-    		$include = str_replace('|', ',', $include);
-    	}
-
-		$orderby = strtolower($orderby);
-    	if($orderby == 'random')
-    	{
-    		$orderby = 'RAND()';
-    		
-    		// no sense in sorting if we're random, right?
-    		$sort = '';
-    	}
-    	
-    	$limit = intval($limit);
-    	$offset = intval($offset);
-
-
-
-		/*
-		 * Limit query to include specific field(s)?
-		 * ----------------------------------------------------
-		 * ----------------------------------------------------
-		 */
-		$sql_include = array();
-		if($include)
+		$this->_ckey = md5($this->EE->TMPL->tagproper);
+		if ( ! ($this->_result = $this->EE->session->cache('many_assets', $this->_ckey)))
 		{
 
-    		foreach(explode(',', $include) as $names)
-    		{
-    			switch(substr_count($names, ':'))
-    			{
-    				case(2) :
-	    				// Only run query if our matrix table exists
-	    				if($this->EE->db->table_exists('exp_matrix_cols'))
-	    				{
-		    				list($channel_name, $field_name, $col_name) = explode(':', $names);
-		    				$sql = 'SELECT mc.col_id, mc.field_id
-		    							FROM exp_matrix_cols mc JOIN exp_channel_fields cf ON mc.field_id = cf.field_id
-		    							WHERE cf.field_name = "' . $field_name . '"
-		    							AND group_id IN(SELECT field_group FROM exp_channels WHERE channel_name = "'. $channel_name . '")
-		    							AND mc.col_name = "' . $col_name . '" LIMIT 1';
-				    		$query = $this->EE->db->query($sql);
-							if($query->num_rows())
-							{
-								$row = $query->row();
-								$key = 'f' . $row->field_id . 'c' . $row->col_id;
-								if( ! array_key_exists($key, $sql_include))
-								{
-									$sql_include[$key] = ' (ae.field_id = "' . $row->field_id . '" AND ae.col_id="' . $row->col_id . '") ';
-								}
-							}
-
-							// waste not, want not
-							$query->free_result();
-						}
-    				break;
-    				
-    				case(1) :
-	    				list($channel_name, $field_name) = explode(':', $names);
-			    		$sql = 'SELECT field_id FROM exp_channel_fields WHERE field_name = "' . $field_name . '" AND group_id IN(SELECT field_group FROM exp_channels WHERE channel_name = "'. $channel_name . '")';
-			    		$query = $this->EE->db->query($sql);
-						if($query->num_rows())
-						{
-							$row = $query->row();
-							$key = 'f' . $row->field_id;
-							if( ! array_key_exists($key, $sql_include))
-							{
-								$sql_include[$key] = ' ae.field_id = "' . $query->row()->field_id . '" ';
-							}
-						}
+	    	/*
+	    	 * fetch required param(s) - return immediately if any are not provided
+			 * ----------------------------------------------------
+	    	 */
+			if (($entry_ids	= $this->EE->TMPL->fetch_param('entry_ids', FALSE)) == FALSE) return;
 	
-						// waste not, want not
-						$query->free_result();
-    				break;
-    			}
-    		}
-		}
+	
+	
+	    	/*
+	    	 * fetch optional params
+			 * ----------------------------------------------------
+	    	 */
+	    	$include		= $this->EE->TMPL->fetch_param('include', FALSE);
+	    	$exclude		= $this->EE->TMPL->fetch_param('exclude', FALSE);
+	    	$orderby		= $this->EE->TMPL->fetch_param('orderby', FALSE);
+	    	$sort			= $this->EE->TMPL->fetch_param('sort', '');
+	    	$limit			= $this->EE->TMPL->fetch_param('limit', 0);
+	    	$offset			= $this->EE->TMPL->fetch_param('offset', 0);
+	
+	
+	
+			/*
+			 * Format/standardise params
+			 * ----------------------------------------------------
+			 */
+			
+			$entry_ids = trim($entry_ids, ',|');
+	    	if(strpos($entry_ids, '|') !== FALSE)
+	    	{
+	    		$entry_ids = str_replace('|', ',', $entry_ids);
+	    	}
+	
+			$orderby = strtolower($orderby);
+	    	if($orderby == 'random')
+	    	{
+	    		$orderby = 'RAND()';
+	    		
+	    		// no sense in sorting if we're random, right?
+	    		$sort = '';
+	    	}
+	    	
+	    	$limit = intval($limit);
+	    	$offset = intval($offset);
+	
+	
+	
+			/*
+			 * Assemble our query
+			 * ----------------------------------------------------
+			 * ----------------------------------------------------
+			 */
+			$sql = 'SELECT DISTINCT a.asset_id, a.*
+				FROM exp_assets a
+				JOIN exp_assets_entries ae ON a.asset_id = ae.asset_id
+				WHERE ae.entry_id IN(' . $entry_ids . ')';
+			
+			// limit to certain fields?
+			if($sql_include = $this->_include($include))
+			{
+				$sql .= ' AND (' . implode(' OR ', $sql_include) . ')';
+			}
+
+			// exclude certain fields?
+			if($sql_exclude = $this->_exclude($exclude))
+			{
+				// beware of NULL... http://forums.mysql.com/read.php?10,275066,275197#msg-275197 
+				$sql .= ' AND (ae.col_id IS NULL OR ' . implode(' AND ', $sql_exclude) . ')';
+			}
+
+			if($orderby)
+			{
+				$sql .= ' ORDER BY ' . $orderby . ' ' . $sort;
+			}
+			
+			if($limit > 0)
+			{
+				$sql .= ' LIMIT ' . $limit;
+			}
+			
+			if($offset > 0)
+			{
+				$sql .= ' OFFSET ' . $limit;
+			}
 
 
 
-		/*
-		 * build our query
-		 * ----------------------------------------------------
-		 * ----------------------------------------------------
-		 */
-		$sql = 'SELECT DISTINCT a.asset_id, a.*
-			FROM exp_assets a
-			JOIN exp_assets_entries ae ON a.asset_id = ae.asset_id
-			WHERE ae.entry_id IN(' . $entry_ids . ')';
-		
-		
-		$sql .= ' AND (' . implode(' OR ', $sql_include) . ')';
-
-		if($orderby)
-		{
-			$sql .= ' ORDER BY ' . $orderby . ' ' . $sort;
-		}
-		
-		if($limit > 0)
-		{
-			$sql .= ' LIMIT ' . $limit;
-		}
-		
-		if($offset > 0)
-		{
-			$sql .= ' OFFSET ' . $limit;
-		}
-
-
-
-		/*
-		 * Fetch & cache our query if not already cached
-		 * ----------------------------------------------------
-		 * ----------------------------------------------------
-		 */
-		$key = serialize($sql);
-		if ( ! isset($this->_cache[$key]))
-		{
+			/*
+			 * Run our query, and save to cache
+			 */
 			$query = $this->EE->db->query($sql);
-			$this->_cache[$key] = $query->result_array();
+			$this->_result = $query->result_array();
 			$query->free_result();
+			$this->EE->session->set_cache('many_assets', $this->_ckey, $this->_result);
 		}
 
 
@@ -214,7 +155,7 @@ class Many_assets {
 		 * ----------------------------------------------------
 		 */
 		$files = array();
-		if($this->_cache[$key])
+		if($this->_result)
 		{
 		
 			// Include dependency classes
@@ -230,7 +171,7 @@ class Many_assets {
 
 			// heavy lifting
 			$Assets_ft = new Assets_ft();
-			foreach ($this->_cache[$key] as $row)
+			foreach ($this->_result as $row)
 			{
 				$file = $Assets_ft->helper->get_file($row['file_path']);
 	
@@ -264,6 +205,106 @@ class Many_assets {
 
 
 
+	/**
+	 * Convenience method for Many_assets::include_exclude()
+	 */
+	protected function _include($include = array())
+	{
+		return $this->_include_exclude($include, 'i');
+	}
+
+
+
+	/**
+	 * Convenience method for Many_assets::include_exclude()
+	 */
+	protected function _exclude($exclude = array())
+	{
+		return $this->_include_exclude($exclude, 'e');
+	}
+
+
+	/**
+	 * Utility method to include or exclude certain fields
+	 */
+	protected function _include_exclude($incexc = '', $mode = 'i')
+	{
+
+		// Format/standardise params
+		trim($incexc, ',|');
+	    if(strpos($incexc, '|') !== FALSE)
+    	{
+    		$incexc = str_replace('|', ',', $incexc);
+    	}
+
+		// arrays full of col_ids and field_ids
+		$col_ids = $field_ids = array();
+
+		foreach(explode(',', $incexc) as $names)
+		{
+			switch(substr_count($names, ':'))
+			{
+				// 2 = matrix column, in a custom field, in a channel
+				case(2) :
+    				// Only run query if our matrix table exists
+    				if($this->EE->db->table_exists('exp_matrix_cols'))
+    				{
+	    				list($channel_name, $field_name, $col_name) = explode(':', $names);
+	    				$sql = 'SELECT mc.col_id
+	    							FROM exp_matrix_cols mc JOIN exp_channel_fields cf ON mc.field_id = cf.field_id
+	    							WHERE cf.field_name = "' . $field_name . '"
+	    							AND group_id IN (SELECT field_group FROM exp_channels WHERE channel_name = "'. $channel_name . '")
+	    							AND mc.col_name = "' . $col_name . '" LIMIT 1';
+			    		$query = $this->EE->db->query($sql);
+						if($query->num_rows())
+						{
+							$row = $query->row();
+							$key = 'c' . $row->col_id;
+							if( ! array_key_exists($key, $col_ids))
+							{
+								$col_ids[$key] = $row->col_id;
+							}
+						}
+
+						// waste not, want not
+						$query->free_result();
+					}
+				break;
+
+				// 1 = custom field in a channel
+				case(1) :
+    				list($channel_name, $field_name) = explode(':', $names);
+		    		$sql = 'SELECT field_id FROM exp_channel_fields WHERE field_name = "' . $field_name . '" AND group_id IN (SELECT field_group FROM exp_channels WHERE channel_name = "'. $channel_name . '")';
+		    		$query = $this->EE->db->query($sql);
+					if($query->num_rows())
+					{
+						$row = $query->row();
+						$key = 'f' . $row->field_id;
+						if( ! array_key_exists($key, $field_ids))
+						{
+							$field_ids[$key] = $row->field_id;
+						}
+					}
+
+					// waste not, want not
+					$query->free_result();
+				break;
+			}
+		}
+		// combine all we found above into succinct NOT|IN()s
+		$return = array();
+		$condition = ($mode == 'i') ? 'IN' : 'NOT IN';
+		
+		if($col_ids) {
+			$return[] = ' ae.col_id ' . $condition . '(' . implode(',', $col_ids) . ') ';
+		}
+		if($field_ids) {
+			$return[] = ' ae.field_id ' . $condition . '(' . implode(',', $field_ids) . ') ';
+		}
+
+		// we return one of our two options
+		return $return;
+	}
 
 	/**
 	 * Plugin Usage
