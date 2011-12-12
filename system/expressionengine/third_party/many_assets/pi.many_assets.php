@@ -12,7 +12,7 @@
 
 $plugin_info = array(
 	'pi_name'		=> 'Many Assets',
-	'pi_version'	=> '1.2.1',
+	'pi_version'	=> '1.2.2',
 	'pi_author'		=> 'John D Wells',
 	'pi_author_url'	=> 'http://johndwells.com',
 	'pi_description'=> 'Retrieve P&T Assets from across many Entries, and/or across many custom fields.',
@@ -23,19 +23,19 @@ class Many_assets {
 
 	public $return_data;
 
-	/*
+	/**
 	 * Holds any query results
 	 */
     protected $_result = array();
     
-    /*
+    /**
      * Cache key
      */
     protected $_ckey;
 
 
 
-	/*
+	/**
 	 * Constructor
 	 */
 	public function __construct()
@@ -44,73 +44,56 @@ class Many_assets {
 		$this->EE =& get_instance();
 
 
-		/*
-		 * Fetch/call/cache our query
-		 * ----------------------------------------------------
-		 */
+		// -------------------------------------------
+		// Fetch/call/cache our query
+		// -------------------------------------------
+
 		$this->_ckey = md5($this->EE->TMPL->tagproper);
 		if ( ! ($this->_result = $this->EE->session->cache('many_assets', $this->_ckey)))
 		{
 
-	    	/*
-	    	 * fetch required param(s) - return immediately if any are not provided
-			 * ----------------------------------------------------
-	    	 */
+	    	// -------------------------------------------
+	    	// fetch required param(s) - return immediately if any are not provided
+			// -------------------------------------------
+
 			if (($entry_ids	= $this->EE->TMPL->fetch_param('entry_ids', FALSE)) == FALSE) return;
 	
 	
 	
-	    	/*
-	    	 * fetch optional params
-			 * ----------------------------------------------------
-	    	 */
+	    	// -------------------------------------------
+	    	// fetch optional params
+			// -------------------------------------------
+
 	    	$include		= $this->EE->TMPL->fetch_param('include', FALSE);
 	    	$exclude		= $this->EE->TMPL->fetch_param('exclude', FALSE);
-	    	$orderby		= $this->EE->TMPL->fetch_param('orderby', FALSE);
-	    	$sort			= $this->EE->TMPL->fetch_param('sort', '');
+	    	$orderby		= $this->EE->TMPL->fetch_param('orderby', 'asset_order');
+	    	$sort			= $this->EE->TMPL->fetch_param('sort', 'asc');
 	    	$limit			= $this->EE->TMPL->fetch_param('limit', 0);
 	    	$offset			= $this->EE->TMPL->fetch_param('offset', 0);
 
 
 
-			/*
-			 * Format/standardise params
-			 * ----------------------------------------------------
-			 */
+			// -------------------------------------------
+			// Format/standardise params
+			// -------------------------------------------
 
-			$entry_ids = trim($entry_ids, ',|');
-	    	if(strpos($entry_ids, '|') !== FALSE)
-	    	{
-	    		$entry_ids = str_replace('|', ',', $entry_ids);
-	    	}
-	
-			$orderby = strtolower($orderby);
-			switch($orderby)
-			{
-				case('random') :
-					$orderby = 'RAND()';
-					
-		    		// no sense in sorting if we're random, right?
-		    		$sort = '';
-				break;
-				
-				// for sanity's sake, let's be sure we're trying to order on a column that exists
-				default :
-					$orderby = ($this->EE->db->field_exists($orderby, 'exp_assets')) ? 'a.' . $orderby : (($this->EE->db->field_exists($orderby, 'exp_assets_entries')) ? 'ae.' . $orderby : FALSE);
-				break;
-			}
-	    	
+			// $entry_ids may be pipe or string delimited
+			$entry_ids = $this->_delimitered($entry_ids);
+
+			// $orderby & $sort may be pipe or string delimited
+			$orderby = $this->_delimitered(strtolower($orderby));
+			$sort = $this->_delimitered(strtolower($sort));
+
+			// $limit & $offset should be integers			
 	    	$limit = intval($limit);
-
 	    	$offset = intval($offset);
 	
 	
 	
-			/*
-			 * Assemble our query
-			 * ----------------------------------------------------
-			 * ----------------------------------------------------
-			 */
+			// -------------------------------------------
+			// Assemble our query
+			// -------------------------------------------
+
 			$sql = 'SELECT DISTINCT a.asset_id, a.*
 				FROM exp_assets a
 				JOIN exp_assets_entries ae ON a.asset_id = ae.asset_id
@@ -129,10 +112,8 @@ class Many_assets {
 				$sql .= ' AND (ae.col_id IS NULL OR ' . implode(' AND ', $sql_exclude) . ')';
 			}
 
-			if($orderby)
-			{
-				$sql .= ' ORDER BY ' . $orderby . ' ' . $sort;
-			}
+			// format sort order based on $orderby & $sort
+			$sql .= $this->_sql_sort_order($orderby, $sort);
 			
 			if($limit > 0)
 			{
@@ -143,12 +124,14 @@ class Many_assets {
 			{
 				$sql .= ' OFFSET ' . $limit;
 			}
+			
+			die($sql);
 
 
 
-			/*
-			 * Run our query, and save to cache
-			 */
+			// -------------------------------------------
+			// Run our query, and save to cache
+			// -------------------------------------------
 			$query = $this->EE->db->query($sql);
 			$this->_result = $query->result_array();
 			$query->free_result();
@@ -157,11 +140,10 @@ class Many_assets {
 
 
 
-		/*
-		 * process whatever we've found
-		 * ----------------------------------------------------
-		 * ----------------------------------------------------
-		 */
+		// -------------------------------------------
+		// process whatever we've found
+		// -------------------------------------------
+
 		$files = array();
 		if($this->_result)
 		{
@@ -194,11 +176,10 @@ class Many_assets {
 
 
 
-		/*
-		 * What to return?
-		 * ----------------------------------------------------
-		 * ----------------------------------------------------
-		 */
+		// -------------------------------------------
+		// What to return?
+		// -------------------------------------------
+
 		if(count($files) > 0)
 		{
 			$this->return_data = $Assets_ft->replace_tag($files, $this->EE->TMPL->tagparams, $this->EE->TMPL->tagdata);
@@ -214,11 +195,80 @@ class Many_assets {
 
 
 	/**
+	 * Utility method for cleaning up a delimiter-ed list
+	 */
+	protected function _delimitered($string)
+	{
+		$string = trim($string, ',|');
+    	if(strpos($string, '|') !== FALSE)
+    	{
+    		$string = str_replace('|', ',', $string);
+    	}
+    	
+    	return $string;
+	}
+
+
+
+	/**
 	 * Convenience method for Many_assets::include_exclude()
 	 */
 	protected function _include($include = array())
 	{
 		return $this->_include_exclude($include, 'i');
+	}
+	
+	
+	
+	/**
+	 * Utility method to format the portion of the sql query that specifies sort order
+	 */
+	protected function _sql_sort_order($orderby, $sort)
+	{
+		$sql = ' ORDER BY ';
+		
+		// random trumps all others
+		if(strpos($orderby, 'random') !== FALSE)
+		{
+			$sql .= ' RAND() ';
+		}
+		else
+		{
+			// need same amount of params
+			if(($orderby_count = substr_count($orderby, ',')) != ($sort_count = substr_count($sort, ',')))
+			{
+				for($i = ($orderby_count - $sort_count); $i > 0; $i--)
+				{
+					$sort .= ',' . 'asc';
+				} 
+			}
+
+			// combine orderby & sort into a single array
+			$sort_order = array_combine(explode(',', $orderby), explode(',', $sort));
+			
+			// for sanity's sake, let's be sure we're trying to order on columns that exist
+			$fields = array_merge($this->EE->db->list_fields('exp_assets'), $this->EE->db->list_fields('exp_assets_entries'));
+			
+			foreach($sort_order as $key => $val)
+			{
+				if(in_array($key, $fields))
+				{
+					// if sorting by asset_id, need to specify which table, since it appears in both
+					if($key == 'asset_id')
+					{
+						$sql .= ' a.' . $key . ' ' . $val . ',';
+					}
+					else{
+						$sql .= ' ' . $key . ' ' . $val . ',';
+					}
+				}
+			}
+
+			// remove trailings			
+			$sql = trim($sql, ',');
+		}
+		
+		return $sql;
 	}
 
 
@@ -239,11 +289,7 @@ class Many_assets {
 	{
 
 		// Format/standardise params
-		trim($incexc, ',|');
-	    if(strpos($incexc, '|') !== FALSE)
-    	{
-    		$incexc = str_replace('|', ',', $incexc);
-    	}
+		$incexc = $this->_delimitered($incexc);
 
 		// arrays full of col_ids and field_ids
 		$col_ids = $field_ids = array();

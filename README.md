@@ -1,13 +1,13 @@
 # Many Assets
 
 * Author: [John D Wells](http://johndwells.com)
-* Version 1.2.1 (consider beta until I say otherwise)
+* Version 1.2.2 (consider beta until I say otherwise)
 
-Requires:
+Requirements:
 
 * PHP5
 * [ExpressionEngine](http://expressionengine.com/) 2.1.3 or later
-* [P&Ts Assets](http://pixelandtonic.com/assets)
+* [P&Ts Assets](http://pixelandtonic.com/assets) 1.1 or later
 
 
 ## Description
@@ -33,12 +33,12 @@ A pipe- or string-delimited list of entry IDs.
 
 **`parse="inward"`**
 
-This is required for the plugin to parse in the correct order.
+*This is required for the plugin to parse in the correct order.*
 
 
 ## Optional Parameters
 
-Accepts all of Asset's documented parameters, plus:
+Accepts all of Asset's [documented parameters](http://pixelandtonic.com/assets/docs/templates), plus:
 
 **`include="..."`**
 
@@ -47,18 +47,6 @@ A pipe- or string-delimited list of fields that the lookup should be limited to.
 **`exclude="..."`**
 
 A pipe- or string-delimited list of fields that the lookup should exclude.
-
-**`orderby="..."` and `sort="asc|desc"`**
-
-Allow sorting on basic asset data.
-
-**`limit="10"`**
-
-Specify max limit to return.
-
-**`offset="10"`**
-
-Specify an offset.
 
 
 ## Usage Examples #
@@ -72,7 +60,7 @@ Specify an offset.
 
 ### Limit to field name & matrix col #
 
-	{exp:many_assets entry_ids="420,1976,2011" field_names="cf_page_slideshow,cf_page_matrix:file" parse="inward"}
+	{exp:many_assets entry_ids="420,1976,2011" include="page:cf_page_slideshow,page:cf_page_matrix:file" parse="inward"}
 		...
 	{/exp:many_assets}
 
@@ -89,5 +77,3 @@ Specify an offset.
 		{/exp:ce_img:pair}
 		
 	{/exp:many_assets}
-
-
