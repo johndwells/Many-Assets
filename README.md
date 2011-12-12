@@ -1,7 +1,7 @@
 # Many Assets
 
 * Author: [John D Wells](http://johndwells.com)
-* Version 1.2.0 (consider beta until I say otherwise)
+* Version 1.2.1 (consider beta until I say otherwise)
 
 Requires:
 
@@ -47,6 +47,18 @@ A pipe- or string-delimited list of fields that the lookup should be limited to.
 **`exclude="..."`**
 
 A pipe- or string-delimited list of fields that the lookup should exclude.
+
+**`orderby="..."` and `sort="asc|desc"`**
+
+Allow sorting on basic asset data.
+
+**`limit="10"`**
+
+Specify max limit to return.
+
+**`offset="10"`**
+
+Specify an offset.
 
 
 ## Usage Examples #

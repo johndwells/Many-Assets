@@ -12,7 +12,7 @@
 
 $plugin_info = array(
 	'pi_name'		=> 'Many Assets',
-	'pi_version'	=> '1.2.0',
+	'pi_version'	=> '1.2.1',
 	'pi_author'		=> 'John D Wells',
 	'pi_author_url'	=> 'http://johndwells.com',
 	'pi_description'=> 'Retrieve P&T Assets from across many Entries, and/or across many custom fields.',
@@ -70,14 +70,14 @@ class Many_assets {
 	    	$sort			= $this->EE->TMPL->fetch_param('sort', '');
 	    	$limit			= $this->EE->TMPL->fetch_param('limit', 0);
 	    	$offset			= $this->EE->TMPL->fetch_param('offset', 0);
-	
-	
-	
+
+
+
 			/*
 			 * Format/standardise params
 			 * ----------------------------------------------------
 			 */
-			
+
 			$entry_ids = trim($entry_ids, ',|');
 	    	if(strpos($entry_ids, '|') !== FALSE)
 	    	{
@@ -85,15 +85,23 @@ class Many_assets {
 	    	}
 	
 			$orderby = strtolower($orderby);
-	    	if($orderby == 'random')
-	    	{
-	    		$orderby = 'RAND()';
-	    		
-	    		// no sense in sorting if we're random, right?
-	    		$sort = '';
-	    	}
+			switch($orderby)
+			{
+				case('random') :
+					$orderby = 'RAND()';
+					
+		    		// no sense in sorting if we're random, right?
+		    		$sort = '';
+				break;
+				
+				// for sanity's sake, let's be sure we're trying to order on a column that exists
+				default :
+					$orderby = ($this->EE->db->field_exists($orderby, 'exp_assets')) ? 'a.' . $orderby : (($this->EE->db->field_exists($orderby, 'exp_assets_entries')) ? 'ae.' . $orderby : FALSE);
+				break;
+			}
 	    	
 	    	$limit = intval($limit);
+
 	    	$offset = intval($offset);
 	
 	
