@@ -125,13 +125,12 @@ class Many_assets {
 				$sql .= ' OFFSET ' . $limit;
 			}
 			
-			die($sql);
-
 
 
 			// -------------------------------------------
 			// Run our query, and save to cache
 			// -------------------------------------------
+
 			$query = $this->EE->db->query($sql);
 			$this->_result = $query->result_array();
 			$query->free_result();
