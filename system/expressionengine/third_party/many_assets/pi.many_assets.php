@@ -12,10 +12,10 @@
 
 $plugin_info = array(
 	'pi_name'		=> 'Many Assets',
-	'pi_version'	=> '1.3.0',
+	'pi_version'	=> '1.3.1',
 	'pi_author'		=> 'John D Wells',
 	'pi_author_url'	=> 'http://johndwells.com',
-	'pi_description'=> 'Retrieve P&T Assets from across many Entries, and/or across many custom fields.',
+	'pi_description'=> 'Retrieve P&T Assets from across many entries, and/or across many custom fields.',
 	'pi_usage'		=> Many_assets::usage()
 );
 
@@ -284,7 +284,7 @@ class Many_assets {
 	    				$sql = 'SELECT mc.col_id
 	    							FROM exp_matrix_cols mc JOIN exp_channel_fields cf ON mc.field_id = cf.field_id
 	    							WHERE cf.field_name = "' . $field_name . '"
-	    							AND group_id IN (SELECT field_group FROM exp_channels WHERE channel_name = "'. $channel_name . '")
+	    							AND group_id IN (SELECT field_group FROM exp_channels WHERE site_id = "' . $this->EE->config->item('site_id') . '" AND channel_name = "'. $channel_name . '")
 	    							AND mc.col_name = "' . $col_name . '" LIMIT 1';
 			    		$query = $this->EE->db->query($sql);
 						if($query->num_rows())
@@ -305,7 +305,7 @@ class Many_assets {
 				// 1 = custom field in a channel
 				case(1) :
     				list($channel_name, $field_name) = explode(':', $names);
-		    		$sql = 'SELECT field_id FROM exp_channel_fields WHERE field_name = "' . $field_name . '" AND group_id IN (SELECT field_group FROM exp_channels WHERE channel_name = "'. $channel_name . '")';
+		    		$sql = 'SELECT field_id FROM exp_channel_fields WHERE field_name = "' . $field_name . '" AND group_id IN (SELECT field_group FROM exp_channels WHERE site_id = "' . $this->EE->config->item('site_id') . '" AND channel_name = "'. $channel_name . '")';
 		    		$query = $this->EE->db->query($sql);
 					if($query->num_rows())
 					{
