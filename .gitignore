@@ -1,3 +1,7 @@
 # OS generated files #
 ######################
 .DS_Store
+
+* Ignore any inclusion of the Assets files, here for reference
+/themes
+assets
