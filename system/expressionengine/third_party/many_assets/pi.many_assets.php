@@ -12,7 +12,7 @@
 
 $plugin_info = array(
 	'pi_name'		=> 'Many Assets',
-	'pi_version'	=> '1.2.2',
+	'pi_version'	=> '1.3.0',
 	'pi_author'		=> 'John D Wells',
 	'pi_author_url'	=> 'http://johndwells.com',
 	'pi_description'=> 'Retrieve P&T Assets from across many Entries, and/or across many custom fields.',
@@ -26,13 +26,13 @@ class Many_assets {
 	/**
 	 * Holds any query results
 	 */
-    protected $_result = array();
-    
-    /**
-     * Cache key
-     */
-    protected $_ckey;
+	protected $_result = array();
 
+
+	/**
+	 * Cache key
+	 */
+	protected $_ckey;
 
 
 	/**
@@ -57,20 +57,17 @@ class Many_assets {
 			// -------------------------------------------
 
 			if (($entry_ids	= $this->EE->TMPL->fetch_param('entry_ids', FALSE)) == FALSE) return;
-	
-	
-	
+
+
 	    	// -------------------------------------------
 	    	// fetch optional params
 			// -------------------------------------------
 
-	    	$include		= $this->EE->TMPL->fetch_param('include', FALSE);
-	    	$exclude		= $this->EE->TMPL->fetch_param('exclude', FALSE);
+	    	$fields			= $this->EE->TMPL->fetch_param('fields', FALSE);
 	    	$orderby		= $this->EE->TMPL->fetch_param('orderby', 'asset_order');
 	    	$sort			= $this->EE->TMPL->fetch_param('sort', 'asc');
 	    	$limit			= $this->EE->TMPL->fetch_param('limit', 0);
 	    	$offset			= $this->EE->TMPL->fetch_param('offset', 0);
-
 
 
 			// -------------------------------------------
@@ -87,9 +84,8 @@ class Many_assets {
 			// $limit & $offset should be integers			
 	    	$limit = intval($limit);
 	    	$offset = intval($offset);
-	
-	
-	
+
+
 			// -------------------------------------------
 			// Assemble our query
 			// -------------------------------------------
@@ -100,16 +96,9 @@ class Many_assets {
 				WHERE ae.entry_id IN(' . $entry_ids . ')';
 			
 			// limit to certain fields?
-			if($sql_include = $this->_include($include))
+			if($fields)
 			{
-				$sql .= ' AND (' . implode(' OR ', $sql_include) . ')';
-			}
-
-			// exclude certain fields?
-			if($sql_exclude = $this->_exclude($exclude))
-			{
-				// beware of NULL... http://forums.mysql.com/read.php?10,275066,275197#msg-275197 
-				$sql .= ' AND (ae.col_id IS NULL OR ' . implode(' AND ', $sql_exclude) . ')';
+				$sql .= $this->_sql_fields($fields);
 			}
 
 			// format sort order based on $orderby & $sort
@@ -126,6 +115,13 @@ class Many_assets {
 			}
 			
 
+			// -------------------------------------------
+			// Log the query for debugging
+			// -------------------------------------------
+
+ 			log_message('debug', __CLASS__ . ' : Query -> ' . $sql);
+			$this->EE->TMPL->log_item(__CLASS__ . ' [debug]:  Query -> ' . $sql);
+
 
 			// -------------------------------------------
 			// Run our query, and save to cache
@@ -136,7 +132,6 @@ class Many_assets {
 			$query->free_result();
 			$this->EE->session->set_cache('many_assets', $this->_ckey, $this->_result);
 		}
-
 
 
 		// -------------------------------------------
@@ -174,7 +169,6 @@ class Many_assets {
 		}
 
 
-
 		// -------------------------------------------
 		// What to return?
 		// -------------------------------------------
@@ -192,7 +186,6 @@ class Many_assets {
     }
 
 
-
 	/**
 	 * Utility method for cleaning up a delimiter-ed list
 	 */
@@ -208,17 +201,6 @@ class Many_assets {
 	}
 
 
-
-	/**
-	 * Convenience method for Many_assets::include_exclude()
-	 */
-	protected function _include($include = array())
-	{
-		return $this->_include_exclude($include, 'i');
-	}
-	
-	
-	
 	/**
 	 * Utility method to format the portion of the sql query that specifies sort order
 	 */
@@ -271,29 +253,25 @@ class Many_assets {
 	}
 
 
-
-	/**
-	 * Convenience method for Many_assets::include_exclude()
-	 */
-	protected function _exclude($exclude = array())
-	{
-		return $this->_include_exclude($exclude, 'e');
-	}
-
-
 	/**
 	 * Utility method to include or exclude certain fields
 	 */
-	protected function _include_exclude($incexc = '', $mode = 'i')
+	protected function _sql_fields($fields)
 	{
 
+		// negative match?
+		if ($not = (strncmp($fields, 'not ', 4) == 0))
+		{
+			$fields = substr($fields, 4);
+		}
+
 		// Format/standardise params
-		$incexc = $this->_delimitered($incexc);
+		$fields = $this->_delimitered($fields);
 
 		// arrays full of col_ids and field_ids
 		$col_ids = $field_ids = array();
 
-		foreach(explode(',', $incexc) as $names)
+		foreach(explode(',', $fields) as $names)
 		{
 			switch(substr_count($names, ':'))
 			{
@@ -344,20 +322,25 @@ class Many_assets {
 				break;
 			}
 		}
-		// combine all we found above into succinct NOT|IN()s
-		$return = array();
-		$condition = ($mode == 'i') ? 'IN' : 'NOT IN';
-		
+
+		// now let's formulate our sql fragments
+		$return_array = array();
+		$condition = ($not) ? 'NOT IN' : 'IN';
+
 		if($col_ids) {
-			$return[] = ' ae.col_id ' . $condition . '(' . implode(',', $col_ids) . ') ';
+			$return_array[] = ($not)
+				? ' AND (ae.col_id IS NULL OR ae.col_id NOT IN(' . implode(',', $col_ids) . ')) '
+				: ' AND ae.col_id IN(' . implode(',', $col_ids) . ') ';
 		}
 		if($field_ids) {
-			$return[] = ' ae.field_id ' . $condition . '(' . implode(',', $field_ids) . ') ';
+			$return_array[] = ($not)
+				? ' AND ae.field_id NOT IN (' . implode(',', $field_ids) . ') '
+				: ' AND ae.field_id IN(' . implode(',', $field_ids) . ') ';
 		}
-
-		// we return one of our two options
-		return $return;
+		
+		return ($not) ? implode(' AND ', $return_array) : implode(' OR ', $return_array);
 	}
+
 
 	/**
 	 * Plugin Usage
