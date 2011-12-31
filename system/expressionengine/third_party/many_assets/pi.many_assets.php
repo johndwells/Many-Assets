@@ -12,7 +12,7 @@
 
 $plugin_info = array(
 	'pi_name'		=> 'Many Assets',
-	'pi_version'	=> '1.3.1',
+	'pi_version'	=> '1.3.2',
 	'pi_author'		=> 'John D Wells',
 	'pi_author_url'	=> 'http://johndwells.com',
 	'pi_description'=> 'Retrieve P&T Assets from across many entries, and/or across many custom fields.',
@@ -49,7 +49,7 @@ class Many_assets {
 		// -------------------------------------------
 
 		$this->_ckey = md5($this->EE->TMPL->tagproper);
-		if ( ! ($this->_result = $this->EE->session->cache('many_assets', $this->_ckey)))
+		if ( ! ($this->_result = $this->_cache('many_assets', $this->_ckey)))
 		{
 
 	    	// -------------------------------------------
@@ -130,7 +130,7 @@ class Many_assets {
 			$query = $this->EE->db->query($sql);
 			$this->_result = $query->result_array();
 			$query->free_result();
-			$this->EE->session->set_cache('many_assets', $this->_ckey, $this->_result);
+			$this->_set_cache('many_assets', $this->_ckey, $this->_result);
 		}
 
 
@@ -187,6 +187,33 @@ class Many_assets {
 
 
 	/**
+	 * Constructor alias, needed because we are not calling an explicit method
+	 */
+	public function Many_assets()
+	{
+		return $this->__construct();
+	}
+	// END
+
+
+	/**
+	 * Get Session Cache 
+	 *
+	 * Borrowed straight from EE, to support installs lower than EE2.2.2
+	 *
+	 * @param 	string 	Super Class/Unique Identifier
+	 * @param 	string 	Key to extract from the cache.
+	 * @param 	mixed 	Default value to return if key doesn't exist
+	 * @return 	mixed
+	 */
+	protected function _cache($class, $key, $default = FALSE)
+	{
+		return (isset($this->EE->session->cache[$class][$key])) ? $this->EE->session->cache[$class][$key] : $default; 
+	}
+	// END
+
+
+	/**
 	 * Utility method for cleaning up a delimiter-ed list
 	 */
 	protected function _delimitered($string)
@@ -199,6 +226,28 @@ class Many_assets {
     	
     	return $string;
 	}
+
+
+	/**
+	 * Set Session Cache
+	 *
+	 * Borrowed straight from EE, to support installs lower than EE2.2.2
+	 *
+	 * @param 	string 	Super Class/Unique Identifier
+	 * @param 	string 	Key for cached item
+	 * @param 	mixed 	item to put in the cache
+	 * @return 	object
+	 */
+	protected function _set_cache($class, $key, $val)
+	{
+		if ( ! isset($this->EE->session->cache[$class]))
+		{
+			$this->EE->session->cache[$class] = array();
+		}
+
+		$this->EE->session->cache[$class][$key] = $val;
+	}
+	// END
 
 
 	/**

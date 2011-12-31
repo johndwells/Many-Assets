@@ -8,7 +8,7 @@ Simply pass a pipe- or comma-delimited list of entry ids, add parse="inward", an
 ---
 
 * Author: [John D Wells](http://johndwells.com)
-* Version 1.3.1 (consider beta until I say otherwise)
+* Version 1.3.2 (consider beta until I say otherwise)
 
 ---
 
