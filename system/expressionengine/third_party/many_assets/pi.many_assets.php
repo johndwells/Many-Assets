@@ -55,8 +55,13 @@ class Many_assets {
 	    	// -------------------------------------------
 	    	// fetch required param(s) - return immediately if any are not provided
 			// -------------------------------------------
+			$fixed_order = $this->EE->TMPL->fetch_param('fixed_order', FALSE);
+			$entry_ids = ($fixed_order) ? $fixed_order : $this->EE->TMPL->fetch_param('entry_ids', FALSE);
 
-			if (($entry_ids	= $this->EE->TMPL->fetch_param('entry_ids', FALSE)) == FALSE) return;
+			if ($entry_ids === FALSE)
+			{
+				return;
+			}
 
 
 	    	// -------------------------------------------
@@ -257,46 +262,63 @@ class Many_assets {
 	{
 		$sql = ' ORDER BY ';
 		
-		// random trumps all others
+		// fixed_order trumps all others
+		if ($fixed_order !== FALSE && ! empty($fixed_order))
+		{
+
+			// some peeps might want to be able to 'flip' it
+			// the default sort order is 'desc' but in this context 'desc' has a stronger "reversing"
+			// connotation, so we look not at the sort array, but the tag parameter itself, to see the user's intent
+			if ($sort == 'desc')
+			{
+				$fixed_order = array_reverse($fixed_order);
+			}
+
+			$sql .= ' FIELD(ae.entry_id, '.implode(',', $fixed_order).') ';
+
+			return $sql;
+		}
+		
+		// random is next in line
 		if(strpos($orderby, 'random') !== FALSE)
 		{
 			$sql .= ' RAND() ';
+			
+			return $sql;
 		}
-		else
-		{
-			// need same amount of params
-			if(($orderby_count = substr_count($orderby, ',')) != ($sort_count = substr_count($sort, ',')))
-			{
-				for($i = ($orderby_count - $sort_count); $i > 0; $i--)
-				{
-					$sort .= ',' . 'asc';
-				} 
-			}
 
-			// combine orderby & sort into a single array
-			$sort_order = array_combine(explode(',', $orderby), explode(',', $sort));
-			
-			// for sanity's sake, let's be sure we're trying to order on columns that exist
-			$fields = array_merge($this->EE->db->list_fields('exp_assets'), $this->EE->db->list_fields('exp_assets_entries'));
-			
-			foreach($sort_order as $key => $val)
+		// need same amount of params
+		if(($orderby_count = substr_count($orderby, ',')) != ($sort_count = substr_count($sort, ',')))
+		{
+			for($i = ($orderby_count - $sort_count); $i > 0; $i--)
 			{
-				if(in_array($key, $fields))
+				$sort .= ',' . 'asc';
+			} 
+		}
+
+		// combine orderby & sort into a single array
+		$sort_order = array_combine(explode(',', $orderby), explode(',', $sort));
+		
+		// for sanity's sake, let's be sure we're trying to order on columns that exist
+		$fields = array_merge($this->EE->db->list_fields('exp_assets'), $this->EE->db->list_fields('exp_assets_entries'));
+		
+		foreach($sort_order as $key => $val)
+		{
+			if(in_array($key, $fields))
+			{
+				// if sorting by asset_id, need to specify which table, since it appears in both
+				if($key == 'asset_id')
 				{
-					// if sorting by asset_id, need to specify which table, since it appears in both
-					if($key == 'asset_id')
-					{
-						$sql .= ' a.' . $key . ' ' . $val . ',';
-					}
-					else{
-						$sql .= ' ' . $key . ' ' . $val . ',';
-					}
+					$sql .= ' a.' . $key . ' ' . $val . ',';
+				}
+				else{
+					$sql .= ' ' . $key . ' ' . $val . ',';
 				}
 			}
-
-			// remove trailings			
-			$sql = trim($sql, ',');
 		}
+
+		// remove trailings			
+		$sql = trim($sql, ',');
 		
 		return $sql;
 	}
