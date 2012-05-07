@@ -12,7 +12,7 @@
 
 $plugin_info = array(
 	'pi_name'		=> 'Many Assets',
-	'pi_version'	=> '1.3.2',
+	'pi_version'	=> '1.3.3',
 	'pi_author'		=> 'John D Wells',
 	'pi_author_url'	=> 'http://johndwells.com',
 	'pi_description'=> 'Retrieve P&T Assets from across many entries, and/or across many custom fields.',
@@ -107,7 +107,7 @@ class Many_assets {
 			}
 
 			// format sort order based on $orderby & $sort
-			$sql .= $this->_sql_sort_order($orderby, $sort);
+			$sql .= $this->_sql_sort_order($orderby, $sort, $fixed_order);
 			
 			if($limit > 0)
 			{
@@ -258,7 +258,7 @@ class Many_assets {
 	/**
 	 * Utility method to format the portion of the sql query that specifies sort order
 	 */
-	protected function _sql_sort_order($orderby, $sort)
+	protected function _sql_sort_order($orderby, $sort, $fixed_order = FALSE)
 	{
 		$sql = ' ORDER BY ';
 		
