@@ -69,7 +69,7 @@ class Many_assets {
 			// -------------------------------------------
 
 	    	$fields			= $this->EE->TMPL->fetch_param('fields', FALSE);
-	    	$orderby		= $this->EE->TMPL->fetch_param('orderby', 'asset_order');
+	    	$orderby		= $this->EE->TMPL->fetch_param('orderby', 'sort_order');
 	    	$sort			= $this->EE->TMPL->fetch_param('sort', 'asc');
 	    	$limit			= $this->EE->TMPL->fetch_param('limit', 0);
 	    	$offset			= $this->EE->TMPL->fetch_param('offset', 0);
@@ -95,9 +95,9 @@ class Many_assets {
 			// Assemble our query
 			// -------------------------------------------
 
-			$sql = 'SELECT DISTINCT a.asset_id, a.*
-				FROM exp_assets a
-				JOIN exp_assets_entries ae ON a.asset_id = ae.asset_id
+			$sql = 'SELECT DISTINCT a.file_id, a.*
+				FROM exp_assets_files a
+				JOIN exp_assets_selections ae ON a.file_id = ae.file_id
 				WHERE ae.entry_id IN(' . $entry_ids . ')';
 			
 			// limit to certain fields?
@@ -146,7 +146,30 @@ class Many_assets {
 		$files = array();
 		if($this->_result)
 		{
-		
+			// Include dependency classes
+			$this->EE->load->add_package_path(PATH_THIRD.'assets/');
+			$this->EE->load->library('assets_lib');
+
+			// heavy lifting
+			foreach ($this->_result as $row)
+			{
+				$file_row 	= $this->EE->assets_lib->get_file_row_by_id($row['file_id']);
+				$source 	= $this->EE->assets_lib->instantiate_source_type($file_row);
+				$file 		= $source->get_file($row['file_id']);
+				$files[] 	= $file;
+			}
+
+			// remove package path
+			$this->EE->load->remove_package_path(PATH_THIRD.'assets/');
+		}
+
+
+		// -------------------------------------------
+		// What to return?
+		// -------------------------------------------
+
+		if(count($files) > 0)
+		{
 			// Include dependency classes
 			if ( ! class_exists('EE_Fieldtype'))
 			{
@@ -160,28 +183,10 @@ class Many_assets {
 
 			// heavy lifting
 			$Assets_ft = new Assets_ft();
-			foreach ($this->_result as $row)
-			{
-				$file = $Assets_ft->helper->get_file($row['file_path']);
-	
-				if ($file->exists())
-				{
-					$file->set_row($row);
-					
-					$files[] = $file;
-				}
-			}
-		}
-
-
-		// -------------------------------------------
-		// What to return?
-		// -------------------------------------------
-
-		if(count($files) > 0)
-		{
 			$this->return_data = $Assets_ft->replace_tag($files, $this->EE->TMPL->tagparams, $this->EE->TMPL->tagdata);
-		} else {
+		} 
+		else 
+		{
 			// Nothing - show No Results
 			$this->return_data = $this->EE->TMPL->no_results();
 		}
@@ -300,7 +305,7 @@ class Many_assets {
 		$sort_order = array_combine(explode(',', $orderby), explode(',', $sort));
 		
 		// for sanity's sake, let's be sure we're trying to order on columns that exist
-		$fields = array_merge($this->EE->db->list_fields('exp_assets'), $this->EE->db->list_fields('exp_assets_entries'));
+		$fields = array_merge($this->EE->db->list_fields('exp_assets_files'), $this->EE->db->list_fields('exp_assets_selections'));
 		
 		foreach($sort_order as $key => $val)
 		{
