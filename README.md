@@ -10,6 +10,10 @@ Simply pass a pipe- or comma-delimited list of entry ids, add parse="inward", an
 * Author: [John D Wells](http://johndwells.com)
 * Version 1.3.2 (consider beta until I say otherwise)
 
+###### Thanks to:
+
+* [Mark Croxton](https://github.com/croxton) for compat with Assets 2.2.4
+
 ---
 
 # Features #
